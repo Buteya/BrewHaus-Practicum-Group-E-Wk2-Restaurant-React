@@ -5,7 +5,7 @@ function Header() {
         <a href="#" className="shrink-0 text-lg font-bold sm:text-xl">
           Brew<span className="text-accent">Haus</span> Restaurant
         </a>
-        <ul className="flex w-full flex-wrap justify-center gap-x-4 gap-y-2 md:w-auto md:gap-x-5">
+        <ul className="flex w-full flex-col items-center gap-2 md:w-auto md:flex-row md:gap-x-5">
           <li><a className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#hero">Home</a></li>
           <li><a className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#about">About</a></li>
           <li><a className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#menu">Menu</a></li>
