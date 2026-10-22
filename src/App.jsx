@@ -1,16 +1,15 @@
-import { useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import About from './components/About'
+import Menu from './components/Menu'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
       <Header />
       <Hero />
       <About />
+      <Menu />
     </>
   )
 }
