@@ -1,10 +1,10 @@
 function Hero() {
   return (
-    <section id="hero" className="mx-auto max-w-[1100px] px-6 pt-12 pb-16">
+    <section id="hero" className="mx-auto w-full max-w-[1100px] px-4 pt-10 pb-12 sm:px-6 sm:pt-12 sm:pb-16">
       <p className="mb-4 text-sm tracking-[0.15rem] text-highlight uppercase">
         Make a reservation with us today.
       </p>
-      <h1 className="max-w-[40rem] text-[3.5rem] leading-[1.05] font-bold">
+      <h1 className="max-w-[40rem] text-4xl leading-[1.05] font-bold sm:text-5xl md:text-[3.5rem]">
         Where <span className="text-accent">great food</span> meets great
         moments
       </h1>

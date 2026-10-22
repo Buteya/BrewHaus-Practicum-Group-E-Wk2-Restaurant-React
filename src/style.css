@@ -12,6 +12,19 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: clip;
+  }
+
+  #root {
+    max-width: 1100px;
+    margin-inline: auto;
+  }
+
   body {
     @apply bg-bg font-body leading-normal text-ink;
   }
