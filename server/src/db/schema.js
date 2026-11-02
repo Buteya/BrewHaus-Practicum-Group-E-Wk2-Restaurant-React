@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   numeric,
   pgTable,
   text,
@@ -116,5 +117,25 @@ export const menu = pgTable(
     uniqueIndex('menu_slug_unique').on(table.slug),
     uniqueIndex('menu_name_unique').on(table.name),
     index('menu_category_index').on(table.category),
+  ],
+)
+
+export const menuImage = pgTable(
+  'menu_image',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    menuId: uuid('menuId')
+      .notNull()
+      .references(() => menu.id, { onDelete: 'cascade' }),
+    imageUrl: text('imageUrl').notNull(),
+    altText: text('altText'),
+    position: integer('position').notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex('menu_image_menu_position_unique').on(
+      table.menuId,
+      table.position,
+    ),
+    index('menu_image_menu_id_index').on(table.menuId),
   ],
 )
