@@ -17,9 +17,7 @@ function Menu() {
 
     async function loadMenu() {
       try {
-        const response = await fetch('/api/menu', {
-          signal: controller.signal,
-        })
+        const response = await fetch('/api/menu', { signal: controller.signal })
 
         if (!response.ok) {
           throw new Error(`Unable to load the menu (${response.status}).`)

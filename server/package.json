@@ -7,8 +7,8 @@
         "node": ">=20"
     },
     "scripts": {
-        "dev": "node --watch src/index.js",
-        "start": "node src/index.js",
+        "dev": "node --watch src/dev.js",
+        "start": "node src/dev.js",
         "db:generate": "drizzle-kit generate --config=src/db/drizzle.config.js",
         "db:push": "drizzle-kit push --config=src/db/drizzle.config.js",
         "db:studio": "drizzle-kit studio --config=src/db/drizzle.config.js",
