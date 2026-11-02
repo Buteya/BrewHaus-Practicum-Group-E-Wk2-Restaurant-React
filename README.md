@@ -3,9 +3,9 @@
 ## Deploying on Vercel
 
 Deploy this repository as one Vercel project with the Vercel project's Root
-Directory set to `client`. The `client/vercel.json` defines the `client` (Vite)
-and `server` (Express) services and routes `/api/*` to the server, with all
-other requests going to the client.
+Directory set to the repository root. The root `vercel.json` defines the
+`client` (Vite) and `server` (Express) services and routes `/api/*` to the
+server, with all other requests going to the client.
 
 Add these project environment variables in Vercel:
 
