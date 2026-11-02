@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { menuCategories } from '../data/menu'
+import { useEffect, useState } from 'react'
+import { formatPrice } from '../lib/format'
 import QuantityStepper from './QuantityStepper'
 import MenuDetail from './MenuDetail'
 
@@ -8,11 +8,63 @@ function Menu() {
   const [cart, setCart] = useState([])
   const [cartMessage, setCartMessage] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
+  const [menuCategories, setMenuCategories] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadMenu() {
+      try {
+        const response = await fetch('/api/menu', {
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Unable to load the menu (${response.status}).`)
+        }
+
+        const menuItems = await response.json()
+        if (!Array.isArray(menuItems)) {
+          throw new Error('The menu response has an unexpected format.')
+        }
+
+        const categories = new Map()
+        for (const item of menuItems) {
+          if (!categories.has(item.category)) {
+            categories.set(item.category, {
+              id: item.category,
+              label: item.categoryLabel,
+              items: [],
+            })
+          }
+          categories.get(item.category).items.push(item)
+        }
+
+        setMenuCategories([...categories.values()])
+      } catch (error) {
+        if (!(error instanceof Error && error.name === 'AbortError')) {
+          setLoadError(
+            error instanceof Error ? error.message : 'Unable to load the menu.',
+          )
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadMenu()
+    return () => controller.abort()
+  }, [])
+
   const filters = [{ id: 'all', label: 'All' }, ...menuCategories]
   const visibleItems =
     activeCategory === 'all'
       ? menuCategories.flatMap(({ items }) => items)
-      : menuCategories.find(({ id }) => id === activeCategory).items
+      : (menuCategories.find(({ id }) => id === activeCategory)?.items ?? [])
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0)
 
   function addToCart(selectedItem) {
@@ -34,6 +86,22 @@ function Menu() {
     setCartMessage(
       `${selectedItem.quantity} ${selectedItem.name} added to your cart.`,
     )
+  }
+
+  function returnToMenu() {
+    setSelectedItem(null)
+
+    window.requestAnimationFrame(() => {
+      const menuSection = document.getElementById('menu')
+      if (!menuSection) return
+
+      const header = document.querySelector('#root > header')
+      const headerHeight = header?.getBoundingClientRect().height ?? 0
+      const menuTop =
+        window.scrollY + menuSection.getBoundingClientRect().top - headerHeight
+
+      window.scrollTo({ top: Math.max(0, menuTop), behavior: 'instant' })
+    })
   }
 
   return (
@@ -74,10 +142,18 @@ function Menu() {
           ))}
         </div>
 
-        {selectedItem ? (
+        {isLoading ? (
+          <p className="py-8 text-ink-soft" role="status">
+            Loading menu...
+          </p>
+        ) : loadError ? (
+          <p className="py-8 text-accent" role="alert">
+            {loadError}
+          </p>
+        ) : selectedItem ? (
           <MenuDetail
             item={selectedItem}
-            onBack={() => setSelectedItem(null)}
+            onBack={returnToMenu}
             onAddToCart={addToCart}
           />
         ) : (
@@ -110,7 +186,7 @@ function Menu() {
                       <h4 className="mb-1 text-base font-semibold">{name}</h4>
                       <p className="text-xs text-ink-soft">{description}</p>
                       <p className="mt-2 text-[0.95rem] font-semibold text-accent">
-                        {price}
+                        {formatPrice(price)}
                       </p>
                     </div>
                   </button>
@@ -145,7 +221,7 @@ function Menu() {
                 >
                   <span>{name}</span>
                   <span className="shrink-0 font-semibold text-ink-soft">
-                    × {quantity} · {price}
+                    × {quantity} · {formatPrice(price)}
                   </span>
                 </li>
               ))}

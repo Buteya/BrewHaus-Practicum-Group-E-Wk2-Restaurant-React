@@ -4,6 +4,7 @@ import About from './components/About'
 import Menu from './components/Menu'
 import Footer from './components/Footer'
 import Reservation from './components/Reservation'
+import Login from './components/Login'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <About />
       <Menu />
       <Reservation />
+      <Login />
       <Footer />
     </>
   )

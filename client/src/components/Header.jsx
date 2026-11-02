@@ -11,6 +11,7 @@ function Header() {
           <li><a className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#menu">Menu</a></li>
           <li><a className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#reservation">Reservation</a></li>
           <li><a className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#contact">Contact</a></li>
+          <li><a className="text-sm font-semibold text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href="#login">Sign in</a></li>
         </ul>
       </nav>
     </header>
