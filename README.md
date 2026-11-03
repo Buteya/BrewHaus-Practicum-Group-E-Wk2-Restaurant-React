@@ -13,7 +13,9 @@ Add these project environment variables in Vercel:
    - `BETTER_AUTH_SECRET`: a long, random secret.
    - `BETTER_AUTH_URL`: the public Vercel project URL, for example
      `https://brewhaus.vercel.app`.
-   - `CLIENT_URL`: the same public Vercel project URL.
+   - `CLIENT_URL`: the exact public site origin, including `https://` and
+     without a trailing slash. Set it to the deployed Vercel domain, for
+     example `https://brew-haus-practicum-group-e-wk2-res.vercel.app`.
    - `STRIPE_SECRET_KEY`: the Stripe secret API key.
    - `STRIPE_WEBHOOK_SECRET`: the signing secret for the `/api/stripe/webhook`
      endpoint. Configure Stripe to send checkout completed, async payment
@@ -22,7 +24,9 @@ Add these project environment variables in Vercel:
 The client uses same-origin `/api` requests, so no client API URL or
 service-to-service binding is needed. The server connects directly to
 PostgreSQL using `DATABASE_URL`. For local development, Vite proxies `/api` to
-the Express server on port 3000.
+the Express server on port 3000. Better Auth trusts `CLIENT_URL` and, when
+Vercel system environment variables are enabled, the exact production domain
+from `VERCEL_PROJECT_PRODUCTION_URL`.
 
 `POST /api/checkout` requires a signed-in session and accepts an `items` array
 of `{ "menuId": "...", "quantity": 1 }` objects. The server reads prices from
