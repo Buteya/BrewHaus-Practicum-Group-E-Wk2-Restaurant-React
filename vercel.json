@@ -18,6 +18,41 @@
       }
     },
     {
+      "source": "/login",
+      "destination": {
+        "service": "client",
+        "path": "/"
+      }
+    },
+    {
+      "source": "/cart",
+      "destination": {
+        "service": "client",
+        "path": "/"
+      }
+    },
+    {
+      "source": "/profile",
+      "destination": {
+        "service": "client",
+        "path": "/"
+      }
+    },
+    {
+      "source": "/checkout/success",
+      "destination": {
+        "service": "client",
+        "path": "/"
+      }
+    },
+    {
+      "source": "/checkout/cancelled",
+      "destination": {
+        "service": "client",
+        "path": "/"
+      }
+    },
+    {
       "source": "/(.*)",
       "destination": {
         "service": "client"
