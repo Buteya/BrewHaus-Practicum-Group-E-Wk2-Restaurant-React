@@ -1,16 +1,43 @@
 import { useEffect, useState } from 'react'
 import { formatPrice } from '../lib/format'
+import { readUserCart, writeUserCart } from '../lib/cart'
+import { authClient } from '../lib/auth-client'
 import QuantityStepper from './QuantityStepper'
 import MenuDetail from './MenuDetail'
 
 function Menu() {
   const [activeCategory, setActiveCategory] = useState('all')
-  const [cart, setCart] = useState([])
+  const [cartState, setCartState] = useState({ userId: null, items: [] })
   const [cartMessage, setCartMessage] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
   const [menuCategories, setMenuCategories] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [checkoutItemId, setCheckoutItemId] = useState(null)
+  const [checkoutError, setCheckoutError] = useState('')
+  const { data: authSession, isPending: isSessionPending } =
+    authClient.useSession()
+  const currentUserId = authSession?.user?.id ?? null
+
+  useEffect(() => {
+    if (isSessionPending) return
+
+    try {
+      setCartState({
+        userId: currentUserId,
+        items: readUserCart(currentUserId),
+      })
+      setCheckoutError('')
+    } catch (error) {
+      setCartState({ userId: currentUserId, items: [] })
+      setCheckoutError(
+        error instanceof Error
+          ? `Unable to load your saved cart: ${error.message}`
+          : 'Unable to load your saved cart.',
+      )
+    }
+  }, [currentUserId, isSessionPending])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -63,27 +90,87 @@ function Menu() {
     activeCategory === 'all'
       ? menuCategories.flatMap(({ items }) => items)
       : (menuCategories.find(({ id }) => id === activeCategory)?.items ?? [])
-  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0)
+  async function handleCheckout(itemsToCheckout, itemId = null) {
+    setCheckoutError('')
+    if (itemsToCheckout.length === 0) {
+      setCheckoutError('Add an item to your cart before checking out.')
+      return
+    }
+
+    setIsCheckingOut(true)
+    setCheckoutItemId(itemId)
+
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          items: itemsToCheckout.map(({ id, quantity }) => ({
+            menuId: id,
+            quantity,
+          })),
+        }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to start checkout.')
+      }
+      if (typeof result.url !== 'string') {
+        throw new Error('Checkout did not return a payment link.')
+      }
+
+      window.location.assign(result.url)
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error ? error.message : 'Unable to start checkout.',
+      )
+      setIsCheckingOut(false)
+      setCheckoutItemId(null)
+    }
+  }
+
+  function orderNow(item) {
+    return handleCheckout(
+      [{ id: item.id, quantity: item.quantity }],
+      item.id,
+    )
+  }
 
   function addToCart(selectedItem) {
-    setCart((currentCart) => {
-      const existingItem = currentCart.find(
-        ({ name }) => name === selectedItem.name,
-      )
+    if (!currentUserId) {
+      setCheckoutError('Sign in to add items to your cart.')
+      return
+    }
 
-      if (existingItem) {
-        return currentCart.map((item) =>
+    const currentCart =
+      cartState.userId === currentUserId ? cartState.items : []
+    const existingItem = currentCart.find(
+      ({ name }) => name === selectedItem.name,
+    )
+    const nextCart = existingItem
+      ? currentCart.map((item) =>
           item.name === selectedItem.name
             ? { ...item, quantity: item.quantity + selectedItem.quantity }
             : item,
         )
-      }
+      : [...currentCart, selectedItem]
 
-      return [...currentCart, selectedItem]
-    })
-    setCartMessage(
-      `${selectedItem.quantity} ${selectedItem.name} added to your cart.`,
-    )
+    try {
+      writeUserCart(currentUserId, nextCart)
+      setCartState({ userId: currentUserId, items: nextCart })
+      setCheckoutError('')
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error
+          ? `Unable to save your cart: ${error.message}`
+          : 'Unable to save your cart.',
+      )
+      return
+    }
+
+    setCartMessage(`${selectedItem.quantity} ${selectedItem.name} added to cart.`)
   }
 
   function returnToMenu() {
@@ -103,7 +190,11 @@ function Menu() {
   }
 
   return (
-    <section id="menu" className="border-t border-line px-6 pt-12 pb-16">
+    <section
+      id="menu"
+      aria-busy={isLoading}
+      className="scroll-mt-20 border-t border-line px-6 pt-12 pb-16"
+    >
       <div className="mx-auto max-w-[1100px]">
         <h2 className="mb-[0.7rem] text-[1.75rem] font-bold">Our Menu</h2>
         <h3 className="mb-4 text-[1.05rem] font-semibold text-[#a5431f]">
@@ -112,6 +203,22 @@ function Menu() {
         <p className="mb-[1.2rem] max-w-[42rem] text-ink-soft">
           Fresh ingredients, expertly crafted dishes, and a warm atmosphere
           designed for memorable moments.
+        </p>
+        {checkoutError && (
+          <p className="mb-4 text-sm font-medium text-accent" role="alert">
+            {checkoutError}
+            {!currentUserId && (
+              <>
+                {' '}
+                <a className="underline" href="/login">
+                  Sign in
+                </a>
+              </>
+            )}
+          </p>
+        )}
+        <p className="sr-only" aria-live="polite">
+          {cartMessage}
         </p>
 
         <div
@@ -153,6 +260,10 @@ function Menu() {
             item={selectedItem}
             onBack={returnToMenu}
             onAddToCart={addToCart}
+            onOrderNow={orderNow}
+            isCheckingOut={isCheckingOut}
+            checkoutItemId={checkoutItemId}
+            checkoutError={checkoutError}
           />
         ) : (
           <div
@@ -192,6 +303,9 @@ function Menu() {
                     <QuantityStepper
                       item={item}
                       onAddToCart={addToCart}
+                      onOrderNow={orderNow}
+                      isCheckingOut={isCheckingOut}
+                      checkoutItemId={checkoutItemId}
                     />
                   </div>
                 </article>
@@ -199,40 +313,6 @@ function Menu() {
             })}
           </div>
         )}
-
-        <aside
-          aria-label="Shopping cart"
-          className="mt-8 rounded-2xl border border-line bg-white p-5"
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-lg font-bold">Your cart</h3>
-            <p className="text-sm font-semibold text-accent">
-              {cartItemCount} {cartItemCount === 1 ? 'item' : 'items'}
-            </p>
-          </div>
-          {cart.length > 0 ? (
-            <ul className="mt-3 divide-y divide-line">
-              {cart.map(({ name, quantity, price }) => (
-                <li
-                  key={name}
-                  className="flex justify-between gap-4 py-2 text-sm"
-                >
-                  <span>{name}</span>
-                  <span className="shrink-0 font-semibold text-ink-soft">
-                    × {quantity} · {formatPrice(price)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-ink-soft">
-              Your cart is empty. Choose a dish to get started.
-            </p>
-          )}
-          <p className="sr-only" aria-live="polite">
-            {cartMessage}
-          </p>
-        </aside>
       </div>
     </section>
   )

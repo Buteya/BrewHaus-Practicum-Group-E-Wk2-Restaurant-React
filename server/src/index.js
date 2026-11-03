@@ -3,7 +3,11 @@ import 'dotenv/config'
 import express from 'express'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './auth.js'
+import checkoutRouter from './routes/checkout.js'
 import menuRouter from './routes/menu.js'
+import ordersRouter from './routes/orders.js'
+import reservationsRouter from './routes/reservations.js'
+import { stripeWebhookHandler } from './routes/stripe-webhook.js'
 
 const app = express()
 
@@ -15,7 +19,15 @@ app.use(
 )
 
 app.all('/api/auth/{*path}', toNodeHandler(auth))
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhookHandler,
+)
 app.use(express.json())
+app.use('/api/checkout', checkoutRouter)
+app.use('/api/orders', ordersRouter)
+app.use('/api/reservations', reservationsRouter)
 app.use('/api/menu', menuRouter)
 
 app.get('/api/health', (_req, res) => {

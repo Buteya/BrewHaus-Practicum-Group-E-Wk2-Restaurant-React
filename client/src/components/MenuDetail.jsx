@@ -5,7 +5,15 @@ import Footer from './Footer'
 import Header from './Header'
 import QuantityStepper from './QuantityStepper'
 
-function MenuDetail({ item, onBack, onAddToCart }) {
+function MenuDetail({
+  item,
+  onBack,
+  onAddToCart,
+  onOrderNow,
+  isCheckingOut,
+  checkoutItemId,
+  checkoutError,
+}) {
   useEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow
     const previousBodyOverflow = document.body.style.overflow
@@ -92,7 +100,18 @@ function MenuDetail({ item, onBack, onAddToCart }) {
                 <p className="mb-3 text-sm font-semibold text-ink">
                   Add this dish to your cart
                 </p>
-                <QuantityStepper item={item} onAddToCart={onAddToCart} />
+                <QuantityStepper
+                  item={item}
+                  onAddToCart={onAddToCart}
+                  onOrderNow={onOrderNow}
+                  isCheckingOut={isCheckingOut}
+                  checkoutItemId={checkoutItemId}
+                />
+                {checkoutError && (
+                  <p className="mt-3 text-sm font-medium text-accent" role="alert">
+                    {checkoutError}
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
   numeric,
@@ -137,5 +139,73 @@ export const menuImage = pgTable(
       table.position,
     ),
     index('menu_image_menu_id_index').on(table.menuId),
+  ],
+)
+
+export const orders = pgTable(
+  'orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'restrict' }),
+    stripeCheckoutSessionId: text('stripeCheckoutSessionId').notNull(),
+    status: text('status').notNull().default('pending'),
+    total: numeric('total', { precision: 10, scale: 2 }).notNull(),
+    currency: text('currency').notNull().default('KES'),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('orders_stripe_checkout_session_unique').on(
+      table.stripeCheckoutSessionId,
+    ),
+    index('orders_user_id_index').on(table.userId),
+  ],
+)
+
+export const orderItems = pgTable(
+  'orderitems',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('orderId')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    menuId: uuid('menuId').references(() => menu.id, { onDelete: 'set null' }),
+    itemName: text('itemName').notNull(),
+    quantity: integer('quantity').notNull(),
+    unitPrice: numeric('unitPrice', { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => [
+    check('orderitems_quantity_positive', sql`${table.quantity} > 0`),
+    index('orderitems_order_id_index').on(table.orderId),
+    index('orderitems_menu_id_index').on(table.menuId),
+  ],
+)
+
+export const reservations = pgTable(
+  'reservations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    phone: text('phone').notNull(),
+    reservationDate: text('reservationDate').notNull(),
+    reservationTime: text('reservationTime').notNull(),
+    partySize: integer('partySize').notNull(),
+    notes: text('notes'),
+    status: text('status').notNull().default('requested'),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => [
+    check('reservations_party_size_positive', sql`${table.partySize} > 0`),
+    index('reservations_date_status_index').on(
+      table.reservationDate,
+      table.status,
+    ),
   ],
 )

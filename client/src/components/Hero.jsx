@@ -1,6 +1,6 @@
 function Hero() {
   return (
-    <section id="hero" className="mx-auto w-full max-w-[1100px] px-4 pt-10 pb-12 sm:px-6 sm:pt-12 sm:pb-16">
+    <section id="hero" className="mx-auto w-full max-w-[1100px] scroll-mt-20 px-4 pt-10 pb-12 sm:px-6 sm:pt-12 sm:pb-16">
       <p className="mb-4 text-sm tracking-[0.15rem] text-highlight uppercase">
         Make a reservation with us today.
       </p>

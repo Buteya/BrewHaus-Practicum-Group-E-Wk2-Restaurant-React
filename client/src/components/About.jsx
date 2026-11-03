@@ -2,7 +2,7 @@ function About() {
   return (
     <section
       id="about"
-      className="relative isolate border-t border-line px-6 pt-12 pb-16"
+      className="relative isolate scroll-mt-20 border-t border-line px-6 pt-12 pb-16"
     >
       <div
         aria-hidden="true"
