@@ -47,3 +47,25 @@ export function writeUserCart(userId, cart) {
 export function clearUserCart(userId) {
   writeUserCart(userId, [])
 }
+
+export function removePurchasedItemsFromUserCart(userId, purchasedItems) {
+  const purchasedQuantities = new Map(
+    purchasedItems
+      .filter((item) => item.menuId)
+      .map((item) => [item.menuId, item.quantity]),
+  )
+
+  if (purchasedQuantities.size === 0) return
+
+  const remainingItems = readUserCart(userId)
+    .map((item) => {
+      const purchasedQuantity = purchasedQuantities.get(item.id)
+      if (!purchasedQuantity) return item
+
+      purchasedQuantities.delete(item.id)
+      return { ...item, quantity: item.quantity - purchasedQuantity }
+    })
+    .filter((item) => item.quantity > 0)
+
+  writeUserCart(userId, remainingItems)
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { authClient } from '../lib/auth-client'
+import { removePurchasedItemsFromUserCart } from '../lib/cart'
 import { formatPrice } from '../lib/format'
 
 function Profile() {
@@ -9,6 +10,8 @@ function Profile() {
   const [orders, setOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [activeOrderAction, setActiveOrderAction] = useState(null)
+  const [orderFeedback, setOrderFeedback] = useState(null)
 
   useEffect(() => {
     if (isSessionPending) return
@@ -56,6 +59,71 @@ function Profile() {
     loadOrders()
     return () => controller.abort()
   }, [isSessionPending, userId])
+
+  async function handleOrderAction(order, action) {
+    setActiveOrderAction({ orderId: order.id, action })
+    setOrderFeedback(null)
+
+    try {
+      const response = await fetch(`/api/orders/${order.id}/${action}`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const result = await response.json()
+
+      if (result.status) {
+        setOrders((currentOrders) =>
+          currentOrders.map((currentOrder) =>
+            currentOrder.id === order.id
+              ? { ...currentOrder, status: result.status }
+              : currentOrder,
+          ),
+        )
+      }
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to update this order.')
+      }
+
+      if (result.status === 'paid') {
+        try {
+          removePurchasedItemsFromUserCart(userId, order.items)
+        } catch (error) {
+          setOrderFeedback({
+            orderId: order.id,
+            message:
+              error instanceof Error
+                ? `Payment is confirmed, but we couldn't update your cart: ${error.message}`
+                : "Payment is confirmed, but we couldn't update your cart.",
+            type: 'error',
+          })
+          return
+        }
+      }
+
+      const message =
+        result.status === 'paid'
+          ? 'Payment confirmed. Thank you for your order!'
+          : result.status === 'cancelled'
+            ? 'Your unpaid checkout was canceled.'
+            : action === 'cancel'
+              ? 'This checkout could not be canceled yet.'
+              : 'Payment is still processing. Check again in a moment.'
+      setOrderFeedback({
+        orderId: order.id,
+        message,
+        type: result.status === 'pending' ? 'info' : 'success',
+      })
+    } catch (error) {
+      setOrderFeedback({
+        orderId: order.id,
+        message:
+          error instanceof Error ? error.message : 'Unable to update this order.',
+        type: 'error',
+      })
+    } finally {
+      setActiveOrderAction(null)
+    }
+  }
 
   return (
     <main className="mx-auto min-h-[55vh] w-full max-w-[900px] px-4 py-12 sm:px-6">
@@ -167,6 +235,73 @@ function Profile() {
                           })}
                         </span>
                       </p>
+                      {order.status === 'pending' && (
+                        <div className="mt-4 rounded-2xl bg-bg p-4">
+                          <p className="text-sm text-ink-soft">
+                            Payment hasn&apos;t been confirmed yet. Confirm its
+                            status or cancel this checkout.
+                          </p>
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleOrderAction(order, 'confirm')
+                              }
+                              disabled={Boolean(activeOrderAction)}
+                              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {activeOrderAction?.orderId === order.id &&
+                              activeOrderAction.action === 'confirm'
+                                ? 'Checking payment...'
+                                : 'Confirm payment'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOrderAction(order, 'cancel')}
+                              disabled={Boolean(activeOrderAction)}
+                              className="rounded-full border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {activeOrderAction?.orderId === order.id &&
+                              activeOrderAction.action === 'cancel'
+                                ? 'Canceling checkout...'
+                                : 'Cancel order'}
+                            </button>
+                          </div>
+                          {orderFeedback?.orderId === order.id && (
+                            <p
+                              className={`mt-3 text-sm font-medium ${
+                                orderFeedback.type === 'error'
+                                  ? 'text-accent'
+                                  : 'text-ink-soft'
+                              }`}
+                              role={
+                                orderFeedback.type === 'error'
+                                  ? 'alert'
+                                  : 'status'
+                              }
+                            >
+                              {orderFeedback.message}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {order.status !== 'pending' &&
+                        orderFeedback?.orderId === order.id && (
+                          <p
+                            className={`mt-3 text-sm font-medium ${
+                              orderFeedback.type === 'error'
+                                ? 'text-accent'
+                                : 'text-ink-soft'
+                            }`}
+                            role={
+                              orderFeedback.type === 'error'
+                                ? 'alert'
+                                : 'status'
+                            }
+                          >
+                            {orderFeedback.message}
+                          </p>
+                        )}
                     </li>
                   ))}
                 </ul>

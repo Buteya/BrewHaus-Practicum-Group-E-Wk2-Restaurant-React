@@ -47,8 +47,13 @@ removes the purchased quantities from that user's local cart.
 
 Signed-in users can open `/profile` from the navigation bar to see their
 account details and order history. `GET /api/orders` returns orders and line
-items scoped to the authenticated user. The navigation cart link appears only
-when the signed-in user's cart has items and shows its total item quantity.
+items scoped to the authenticated user. Pending checkouts can be rechecked
+through `POST /api/orders/:orderId/confirm` or canceled through
+`POST /api/orders/:orderId/cancel`; both actions verify the Stripe session, and
+an order is only marked paid when Stripe confirms payment. Cancellation expires
+an open checkout and is refused while payment is processing. The navigation
+cart link appears only when the signed-in user's cart has items and shows its
+total item quantity.
 
 The reservation form submits requests to `POST /api/reservations` and stores
 them in the `reservations` table. Requests are checked against the Nairobi
