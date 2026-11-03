@@ -94,9 +94,26 @@ router.post('/', requireAuth, async (req, res, next) => {
       throw new Error('Checkout total is outside the supported range.')
     }
 
-    const clientUrl = process.env.CLIENT_URL ?? process.env.BETTER_AUTH_URL
+    const requestOrigin = req.get('origin')
+    const configuredClientOrigins = [
+      process.env.VERCEL_PROJECT_PRODUCTION_URL &&
+        `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`,
+      process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`,
+      process.env.CLIENT_URL,
+      process.env.BETTER_AUTH_URL,
+    ]
+      .filter(Boolean)
+      .map((origin) => new URL(origin).origin)
+    const clientUrl = requestOrigin
+      ? new URL(requestOrigin).origin
+      : (configuredClientOrigins[0] ?? null)
+
     if (!clientUrl) {
       throw new Error('CLIENT_URL or BETTER_AUTH_URL must be configured.')
+    }
+    if (!configuredClientOrigins.includes(clientUrl)) {
+      res.status(403).json({ error: 'Checkout origin is not allowed.' })
+      return
     }
 
     const stripe = getStripe()

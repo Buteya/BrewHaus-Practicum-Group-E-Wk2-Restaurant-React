@@ -26,7 +26,8 @@ service-to-service binding is needed. The server connects directly to
 PostgreSQL using `DATABASE_URL`. For local development, Vite proxies `/api` to
 the Express server on port 3000. Better Auth trusts `CLIENT_URL` and, when
 Vercel system environment variables are enabled, the exact production domain
-from `VERCEL_PROJECT_PRODUCTION_URL`.
+from `VERCEL_PROJECT_PRODUCTION_URL`. Checkout return URLs use the requesting
+site origin only when it matches one of those configured origins.
 
 `POST /api/checkout` requires a signed-in session and accepts an `items` array
 of `{ "menuId": "...", "quantity": 1 }` objects. The server reads prices from
