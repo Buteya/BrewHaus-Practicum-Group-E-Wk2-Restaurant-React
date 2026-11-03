@@ -21,35 +21,35 @@
       "source": "/login",
       "destination": {
         "service": "client",
-        "path": "/"
+        "path": "/index.html"
       }
     },
     {
       "source": "/cart",
       "destination": {
         "service": "client",
-        "path": "/"
+        "path": "/index.html"
       }
     },
     {
       "source": "/profile",
       "destination": {
         "service": "client",
-        "path": "/"
+        "path": "/index.html"
       }
     },
     {
       "source": "/checkout/success",
       "destination": {
         "service": "client",
-        "path": "/"
+        "path": "/index.html"
       }
     },
     {
       "source": "/checkout/cancelled",
       "destination": {
         "service": "client",
-        "path": "/"
+        "path": "/index.html"
       }
     },
     {
