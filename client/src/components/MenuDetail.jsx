@@ -8,6 +8,7 @@ import QuantityStepper from './QuantityStepper'
 function MenuDetail({
   item,
   onBack,
+  onSectionNavigate,
   onAddToCart,
   onOrderNow,
   isCheckingOut,
@@ -32,15 +33,15 @@ function MenuDetail({
       id="menu-detail"
       className="fixed inset-0 z-50 flex min-h-screen flex-col overflow-y-auto bg-bg"
     >
-      <Header />
+      <Header onSectionNavigate={onSectionNavigate} />
       <main className="w-full flex-1">
         <div className="mx-auto max-w-[1100px] px-4 py-5 sm:px-6 sm:py-8">
           <button
             type="button"
             onClick={onBack}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="mb-6 inline-block rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            <span aria-hidden="true">←</span> Back to menu
+            Back to menu
           </button>
 
           <div className="grid overflow-hidden border-y border-line bg-white md:grid-cols-2 md:rounded-3xl md:border md:shadow-[0_12px_36px_rgba(23,54,47,0.08)]">

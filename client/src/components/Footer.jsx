@@ -17,13 +17,18 @@ function Footer() {
           <h3 className="mb-3 text-base font-semibold">BrewHaus Restaurant</h3>
           <ul>
             <li>
-              <a href="" className="text-sm text-ink-soft hover:text-accent">
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=123+Garden+Avenue%2C+Nairobi%2C+Kenya"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-ink-soft hover:text-accent"
+              >
                 123 Garden Avenue, Nairobi, Kenya
               </a>
             </li>
             <li>
               <a
-                href=""
+                href="tel:+254700123456"
                 className="text-sm text-ink-soft hover:text-accent"
               >
                 +254 700 123 456
@@ -31,7 +36,7 @@ function Footer() {
             </li>
             <li>
               <a
-                href=""
+                href="mailto:hello@brewhaus.co.ke"
                 className="text-sm text-ink-soft hover:text-accent"
               >
                 hello@brewhaus.co.ke

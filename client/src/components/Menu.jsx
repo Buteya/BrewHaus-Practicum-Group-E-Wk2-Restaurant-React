@@ -259,6 +259,7 @@ function Menu() {
           <MenuDetail
             item={selectedItem}
             onBack={returnToMenu}
+            onSectionNavigate={() => setSelectedItem(null)}
             onAddToCart={addToCart}
             onOrderNow={orderNow}
             isCheckingOut={isCheckingOut}
