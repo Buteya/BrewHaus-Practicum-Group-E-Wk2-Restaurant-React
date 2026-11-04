@@ -119,7 +119,7 @@ function Header({ onSectionNavigate }) {
             ) : session?.user ? (
               <details className="group">
                 <summary className="flex cursor-pointer list-none items-center gap-1 text-sm font-semibold text-ink-soft transition-colors duration-150 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:text-[0.95rem] [&::-webkit-details-marker]:hidden">
-                  Account
+                  {session.user.name?.trim() || 'Account'}
                   <svg
                     aria-hidden="true"
                     className="size-4 transition-transform group-open:rotate-180"
