@@ -3,33 +3,49 @@
 BrewHaus is a restaurant website with a browsable food menu, customer accounts,
 per-user carts, Stripe Checkout, order history, and a reservation-request form.
 The project is a React/Vite client and an Express API backed by PostgreSQL.
+The browser title and favicon use BrewHaus branding.
 
 ## Features
 
 - Restaurant landing page with Home, About, Menu, Reservation, and Contact
-  sections.
+  sections, responsive navigation, restaurant information, contact links, and
+  opening hours. The footer includes the restaurant's Nairobi address, phone,
+  and email contact links.
 - Menu items loaded from PostgreSQL, grouped by category, with item details,
+  photos, descriptions, preparation details, sides, recommended drinks,
   quantity selection, and add-to-cart/order-now actions. Menu details open in a
   full-screen view; Back to menu returns to the menu, and section navigation
   closes the detail view before opening the selected landing-page section.
+- Add to cart and Order now require a signed-in account. If a visitor tries
+  either action, they are sent to sign in or sign up with an explanation, then
+  returned to the menu to continue.
 - Email/password sign-up, sign-in, session handling, and sign-out using
-  Better Auth.
-- Google sign-in links to an existing account only when its verified Google
-  email matches the account email.
+  Better Auth. Successful sign-up clears the form and switches to sign-in.
+- Google sign-in. A verified Google email can link to an existing account only
+  when it matches that account's email.
+- Forgot-password email requests and a token-based reset-password page.
+  Password reset revokes the user's existing sessions.
 - A cart stored in the signed-in user's browser storage under a user-specific
   key. Carts are separated by account in the same browser; cart contents are
-  not synced across devices.
+  not synced across devices. The header shows the cart item count when the
+  signed-in user's cart is not empty. Cart items can be repriced by quantity,
+  removed, and checked out.
 - Stripe Checkout sessions created by the server using prices read from the
   database. Order records and item snapshots are stored before redirecting to
-  Stripe.
+  Stripe. The server validates menu items and prices rather than trusting
+  prices from the browser.
 - Stripe webhook processing and server-side payment reconciliation. An order
-  is only marked paid after Stripe confirms payment.
+  is only marked paid after Stripe confirms payment. The checkout return page
+  verifies status, retries briefly if the order record is not ready, and clears
+  the cart only after payment is confirmed.
 - Profile and order history, including pending-order actions to recheck payment
-  or cancel an open, unpaid checkout.
+  directly with Stripe or cancel an open, unpaid checkout.
 - Reservation requests persisted in PostgreSQL and checked against the
-  restaurant's Nairobi-time opening hours. A request is not a confirmed
-  reservation; the restaurant must confirm availability.
-- Responsive styling with Tailwind CSS.
+  restaurant's Nairobi-time opening hours. Guests provide their name, email,
+  phone, date, time, party size, and optional notes. A request is not a
+  confirmed reservation; the restaurant must confirm availability.
+- Responsive styling with Tailwind CSS, accessible form feedback, and a
+  BrewHaus coffee-cup favicon.
 
 ## Technology
 
@@ -44,9 +60,10 @@ The project is a React/Vite client and an Express API backed by PostgreSQL.
 
 ```text
 client/
-  src/components/    React page sections, account pages, menu, cart, and forms
+  src/components/    React page sections, authentication, menu, cart, and forms
   src/lib/           Auth client, cart storage, and formatting helpers
   src/App.jsx        Page routing and section navigation
+  public/favicon.svg BrewHaus browser icon
 server/
   src/routes/        Menu, checkout, orders, reservations, and Stripe webhook
   src/db/            Drizzle schema, database connection, and menu seed data
@@ -66,6 +83,9 @@ vercel.json          Vercel client/server service and rewrite configuration
   is also supported.
 - Stripe credentials to exercise checkout. Stripe CLI is optional for local
   webhook testing.
+- Google OAuth credentials to exercise Google sign-in.
+- A Resend API key and a sender address accepted by Resend to exercise
+  password-reset email delivery.
 
 ### Install dependencies
 
@@ -89,14 +109,27 @@ DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 BETTER_AUTH_SECRET=replace-with-a-long-random-secret
 BETTER_AUTH_URL=http://localhost:3000
 CLIENT_URL=http://localhost:5173
+GOOGLE_CLIENT_ID=replace-with-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=replace-with-google-oauth-client-secret
+RESEND_API_KEY=re_replace_with_your_api_key
+RESEND_FROM_EMAIL="BrewHaus <noreply@your-verified-domain.com>"
 PORT=3000
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET=whsec_replace_me
 ```
 
-`DATABASE_URL`, `BETTER_AUTH_SECRET`, and `STRIPE_SECRET_KEY` must be set for
-the corresponding features to work. Use a long, unique secret for
-`BETTER_AUTH_SECRET`; for example, generate one with:
+`DATABASE_URL` and `BETTER_AUTH_SECRET` are required for the server and
+authentication. Set `STRIPE_SECRET_KEY` to enable checkout and
+`STRIPE_WEBHOOK_SECRET` to verify webhook events. Google sign-in requires
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; add
+`http://localhost:3000/api/auth/callback/google` as an authorized Google OAuth
+redirect URI. Password-reset emails require `RESEND_API_KEY` and
+`RESEND_FROM_EMAIL`. For production delivery, the sender address must use a
+domain verified with Resend. Resend's test sender can be used for development
+within its account and recipient restrictions.
+
+Use a long, unique secret for `BETTER_AUTH_SECRET`; for example, generate one
+with:
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
@@ -104,7 +137,9 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 
 For testing reservations without payments, Stripe variables can be left unset.
 The database URL must point to a PostgreSQL database that the server can reach.
-Do not commit `.env` files or production credentials.
+Google and Resend variables can be left unset when those features are not being
+tested. Keep all provider credentials server-side. Do not commit `.env` files
+or production credentials.
 
 ### Create the database schema and menu
 
@@ -136,6 +171,26 @@ From any page, the header's Home, About, Menu, Reservation, and Contact links
 navigate to those sections on the landing page. In the menu-detail view, these
 links close the detail view before navigating.
 
+## Website flows
+
+- **Accounts:** `/login` lets visitors switch between sign-in and sign-up,
+  continue with Google, or request a password-reset link. Google account linking
+  requires a verified Google email matching the existing account. On sign-up,
+  the form clears and returns to sign-in. If an unauthenticated visitor chooses
+  Add to cart or Order now, the login page explains that an account is required.
+  After sign-in they return to the menu and can repeat the action.
+- **Cart and checkout:** `/cart` is available to signed-in users and shows their
+  browser-stored items, quantity controls, remove actions, and total. Checkout
+  redirects to Stripe. The success page checks payment with the server and
+  Stripe; it does not mark an order paid based on the browser redirect alone.
+- **Orders:** `/profile` shows the signed-in user's details and order history.
+  Pending orders can be checked against Stripe again or have an open unpaid
+  checkout canceled.
+- **Reservations:** anyone can request a table from the landing page. The
+  server accepts future times during the listed opening hours, for parties of
+  1–20, and returns a request status. The restaurant still needs to confirm
+  availability.
+
 ## Application pages
 
 | URL | Description |
@@ -143,6 +198,8 @@ links close the detail view before navigating.
 | `/` | Restaurant landing page and menu |
 | `/#hero`, `/#about`, `/#menu`, `/#reservation`, `/#contact` | Landing-page sections; header links also navigate here from other pages and close menu details |
 | `/login` | Sign in or create an account |
+| `/error` | Sign-in page with authentication error feedback |
+| `/reset-password?token=...` | Set a new password from a valid emailed reset link |
 | `/cart` | The signed-in user's cart and checkout action |
 | `/profile` | Account details and order history |
 | `/checkout/success?session_id=...` | Verifies the returned Stripe session and shows order status |
@@ -157,7 +214,7 @@ All API routes use the same origin under `/api`.
 | `GET` | `/api/health` | Public | Basic API health check |
 | `GET` | `/api/menu` | Public | List menu items and images |
 | `GET` | `/api/menu/:slug` | Public | Get a menu item by slug |
-| `GET/POST` | `/api/auth/*` | Public/session | Better Auth sign-up, sign-in, session, and sign-out endpoints |
+| `GET/POST` | `/api/auth/*` | Public/session | Better Auth email and Google sign-in, sign-up, session, sign-out, and password-reset endpoints |
 | `POST` | `/api/checkout` | Signed in | Create a Stripe Checkout session and pending order |
 | `GET` | `/api/orders` | Signed in | List the current user's orders and item snapshots |
 | `GET` | `/api/orders/checkout/:sessionId` | Signed in | Verify/reconcile a Checkout session belonging to the current user |
@@ -248,6 +305,12 @@ Deploy the repository as one Vercel project:
    - `BETTER_AUTH_URL`: public site origin, including `https://`.
    - `CLIENT_URL`: exact public site origin, including `https://` and without a
      trailing slash.
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Google OAuth credentials.
+     Add `https://YOUR_DOMAIN/api/auth/callback/google` to Google's authorized
+     redirect URIs.
+   - `RESEND_API_KEY` and `RESEND_FROM_EMAIL`: server-side password-reset email
+     credentials. For production delivery, use a sender on a domain verified
+     with Resend.
    - `STRIPE_SECRET_KEY`: Stripe secret key for the chosen mode.
    - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret.
 
