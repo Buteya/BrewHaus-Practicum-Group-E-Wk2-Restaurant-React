@@ -9,6 +9,44 @@ const trustedOrigins = [
     `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`,
 ].filter(Boolean)
 
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }
+
+    return entities[character]
+  })
+}
+
+async function sendResendEmail({ to, subject, text, html }) {
+  const apiKey = process.env.RESEND_API_KEY
+  const from = process.env.RESEND_FROM_EMAIL
+
+  if (!apiKey || !from) {
+    throw new Error(
+      'Password reset email requires RESEND_API_KEY and RESEND_FROM_EMAIL.',
+    )
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from, to: [to], subject, text, html }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Resend rejected the email (${response.status}).`)
+  }
+}
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
@@ -18,7 +56,26 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      const safeUrl = escapeHtml(url)
+      await sendResendEmail({
+        to: user.email,
+        subject: 'Reset your BrewHaus password',
+        text: `Use this link to reset your BrewHaus password: ${url}`,
+        html: `<p>We received a request to reset your BrewHaus password.</p><p><a href="${safeUrl}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p>`,
+      })
+    },
   },
+  socialProviders:
+    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {},
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,

@@ -6,6 +6,7 @@ import Menu from './components/Menu'
 import Footer from './components/Footer'
 import Reservation from './components/Reservation'
 import Login from './components/Login'
+import ResetPassword from './components/ResetPassword'
 import CheckoutSuccess from './components/CheckoutSuccess'
 import Cart from './components/Cart'
 import Profile from './components/Profile'
@@ -66,6 +67,18 @@ function App() {
         <Header />
         <main className="min-h-[55vh]">
           <Login />
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  if (window.location.pathname === '/reset-password') {
+    return (
+      <>
+        <Header />
+        <main className="min-h-[55vh]">
+          <ResetPassword />
         </main>
         <Footer />
       </>

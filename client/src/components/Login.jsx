@@ -10,6 +10,7 @@ function Login() {
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSigningUp = mode === 'sign-up'
+  const isForgotPassword = mode === 'forgot-password'
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -18,25 +19,34 @@ function Login() {
     setIsSubmitting(true)
 
     try {
-      const { error } = isSigningUp
-        ? await authClient.signUp.email({
-            name,
-            email,
-            password,
-            callbackURL: window.location.origin,
+      const { error } = isForgotPassword
+        ? await authClient.requestPasswordReset({
+            email: email.trim().toLowerCase(),
+            redirectTo: `${window.location.origin}/reset-password`,
           })
-        : await authClient.signIn.email({
-            email,
-            password,
-            callbackURL: window.location.origin,
-          })
+        : isSigningUp
+          ? await authClient.signUp.email({
+              name,
+              email,
+              password,
+              callbackURL: window.location.origin,
+            })
+          : await authClient.signIn.email({
+              email,
+              password,
+              callbackURL: window.location.origin,
+            })
 
       if (error) {
         setErrorMessage(error.message || 'Unable to authenticate. Please try again.')
         return
       }
 
-      if (isSigningUp) {
+      if (isForgotPassword) {
+        setSuccessMessage(
+          'If an account exists for that email, a password reset link will be sent.',
+        )
+      } else if (isSigningUp) {
         setName('')
         setEmail('')
         setPassword('')
@@ -50,6 +60,29 @@ function Login() {
         error instanceof Error
           ? error.message
           : 'Unable to authenticate. Please try again.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setErrorMessage('')
+    setSuccessMessage('')
+    setIsSubmitting(true)
+
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: 'google',
+        callbackURL: window.location.origin,
+      })
+
+      if (error) {
+        setErrorMessage(error.message || 'Unable to sign in with Google.')
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Unable to sign in with Google.',
       )
     } finally {
       setIsSubmitting(false)
@@ -84,40 +117,82 @@ function Login() {
 
         <div className="p-6 sm:p-9">
           <h2 id="login-heading" className="text-2xl font-bold">
-            {isSigningUp ? 'Create your account' : 'Welcome back'}
+            {isSigningUp
+              ? 'Create your account'
+              : isForgotPassword
+                ? 'Reset your password'
+                : 'Welcome back'}
           </h2>
           <p className="mt-2 text-sm text-ink-soft">
             {isSigningUp
               ? 'Join us for something delicious.'
-              : 'Sign in to your BrewHaus account.'}
+              : isForgotPassword
+                ? 'Enter your email and we will send a reset link if an account exists.'
+                : 'Sign in to your BrewHaus account.'}
           </p>
 
-          <div className="mt-6 grid grid-cols-2 rounded-full border border-line bg-bg p-1">
-            <button
-              type="button"
-              aria-pressed={!isSigningUp}
-              onClick={() => changeMode('sign-in')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                !isSigningUp
-                  ? 'bg-accent text-white'
-                  : 'text-ink-soft hover:text-accent'
-              }`}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              aria-pressed={isSigningUp}
-              onClick={() => changeMode('sign-up')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                isSigningUp
-                  ? 'bg-accent text-white'
-                  : 'text-ink-soft hover:text-accent'
-              }`}
-            >
-              Sign up
-            </button>
-          </div>
+          {!isForgotPassword && (
+            <div className="mt-6 grid grid-cols-2 rounded-full border border-line bg-bg p-1">
+              <button
+                type="button"
+                aria-pressed={!isSigningUp}
+                onClick={() => changeMode('sign-in')}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  !isSigningUp
+                    ? 'bg-accent text-white'
+                    : 'text-ink-soft hover:text-accent'
+                }`}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                aria-pressed={isSigningUp}
+                onClick={() => changeMode('sign-up')}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  isSigningUp
+                    ? 'bg-accent text-white'
+                    : 'text-ink-soft hover:text-accent'
+                }`}
+              >
+                Sign up
+              </button>
+            </div>
+          )}
+
+          {!isForgotPassword && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isSubmitting}
+                className="mt-6 flex w-full items-center justify-center gap-3 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition-colors hover:bg-bg disabled:cursor-wait disabled:opacity-60"
+              >
+                <svg aria-hidden="true" viewBox="0 0 48 48" className="size-5">
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.76 7.18l7.73 6C44.42 38.05 46.98 31.9 46.98 24.55Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.13 1.43-4.86 2.28-8.18 2.28-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"
+                  />
+                </svg>
+                Continue with Google
+              </button>
+              <p className="my-4 text-center text-sm text-ink-soft">
+                or continue with email
+              </p>
+            </>
+          )}
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             {isSigningUp && (
@@ -160,25 +235,41 @@ function Login() {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="login-password"
-                className="mb-1.5 block text-sm font-semibold"
-              >
-                Password
-              </label>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                autoComplete={isSigningUp ? 'new-password' : 'current-password'}
-                minLength={8}
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-xl border border-line bg-bg px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-              />
-            </div>
+            {!isForgotPassword && (
+              <div>
+                <label
+                  htmlFor="login-password"
+                  className="mb-1.5 block text-sm font-semibold"
+                >
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autoComplete={
+                    isSigningUp ? 'new-password' : 'current-password'
+                  }
+                  minLength={8}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-xl border border-line bg-bg px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                />
+              </div>
+            )}
+
+            {!isSigningUp && !isForgotPassword && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => changeMode('forgot-password')}
+                  className="text-sm font-semibold text-accent hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             {errorMessage && (
               <p className="text-sm font-medium text-accent" role="alert">
@@ -198,11 +289,23 @@ function Login() {
             >
               {isSubmitting
                 ? 'Please wait...'
-                : isSigningUp
-                  ? 'Create account'
-                  : 'Sign in'}
+                : isForgotPassword
+                  ? 'Send reset link'
+                  : isSigningUp
+                    ? 'Create account'
+                    : 'Sign in'}
             </button>
           </form>
+
+          {isForgotPassword && (
+            <button
+              type="button"
+              onClick={() => changeMode('sign-in')}
+              className="mt-4 w-full text-center text-sm font-semibold text-accent hover:underline"
+            >
+              Back to sign in
+            </button>
+          )}
         </div>
       </div>
     </section>
