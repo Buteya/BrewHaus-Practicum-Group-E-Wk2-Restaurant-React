@@ -14,6 +14,8 @@ The project is a React/Vite client and an Express API backed by PostgreSQL.
   closes the detail view before opening the selected landing-page section.
 - Email/password sign-up, sign-in, session handling, and sign-out using
   Better Auth.
+- Google sign-in links to an existing account only when its verified Google
+  email matches the account email.
 - A cart stored in the signed-in user's browser storage under a user-specific
   key. Carts are separated by account in the same browser; cart contents are
   not synced across devices.

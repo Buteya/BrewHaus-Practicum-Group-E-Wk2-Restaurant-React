@@ -67,6 +67,12 @@ export const auth = betterAuth({
       })
     },
   },
+  account: {
+    accountLinking: {
+      trustedProviders: ['google'],
+      requireLocalEmailVerified: false,
+    },
+  },
   socialProviders:
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? {

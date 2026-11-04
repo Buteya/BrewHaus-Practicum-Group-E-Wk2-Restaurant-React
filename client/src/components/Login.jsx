@@ -1,12 +1,32 @@
 import { useState } from 'react'
 import { authClient } from '../lib/auth-client'
 
+function getOAuthErrorMessage() {
+  const error = new URLSearchParams(window.location.search).get('error')
+  if (!error) return ''
+
+  const messages = {
+    account_not_linked:
+      'This Google email matches an existing account. Try Google sign-in again using the same email address.',
+    account_already_linked_to_different_user:
+      'This Google account is already linked to a different BrewHaus account.',
+    email_does_not_match:
+      'The Google email does not match the BrewHaus account being linked.',
+    email_not_found: 'Google did not provide an email address for this account.',
+    email_not_verified: 'Verify your Google email address and try again.',
+    state_not_found:
+      'Google sign-in expired or was interrupted. Please try again.',
+  }
+
+  return messages[error] || 'Google sign-in could not be completed. Please try again.'
+}
+
 function Login() {
   const [mode, setMode] = useState('sign-in')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState(getOAuthErrorMessage)
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSigningUp = mode === 'sign-up'
@@ -75,6 +95,7 @@ function Login() {
       const { error } = await authClient.signIn.social({
         provider: 'google',
         callbackURL: window.location.origin,
+        errorCallbackURL: `${window.location.origin}/login`,
       })
 
       if (error) {
