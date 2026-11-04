@@ -36,11 +36,15 @@ function Login() {
         return
       }
 
-      setSuccessMessage(
-        isSigningUp
-          ? 'Your account has been created.'
-          : 'You are now signed in.',
-      )
+      if (isSigningUp) {
+        setName('')
+        setEmail('')
+        setPassword('')
+        setMode('sign-in')
+        setSuccessMessage('Your account has been created. Please sign in.')
+      } else {
+        setSuccessMessage('You are now signed in.')
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error
