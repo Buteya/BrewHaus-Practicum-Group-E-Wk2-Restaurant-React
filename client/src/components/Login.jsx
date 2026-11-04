@@ -22,11 +22,18 @@ function getOAuthErrorMessage() {
 }
 
 function Login() {
+  const requiresOrderSignIn =
+    new URLSearchParams(window.location.search).get('reason') ===
+    'order-required'
   const [mode, setMode] = useState('sign-in')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState(getOAuthErrorMessage)
+  const noticeMessage =
+    requiresOrderSignIn
+      ? 'Sign in or create an account to add items to your cart or place an order.'
+      : ''
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSigningUp = mode === 'sign-up'
@@ -73,6 +80,10 @@ function Login() {
         setMode('sign-in')
         setSuccessMessage('Your account has been created. Please sign in.')
       } else {
+        if (requiresOrderSignIn) {
+          window.location.assign('/#menu')
+          return
+        }
         setSuccessMessage('You are now signed in.')
       }
     } catch (error) {
@@ -94,7 +105,9 @@ function Login() {
     try {
       const { error } = await authClient.signIn.social({
         provider: 'google',
-        callbackURL: window.location.origin,
+        callbackURL: requiresOrderSignIn
+          ? `${window.location.origin}/#menu`
+          : window.location.origin,
         errorCallbackURL: `${window.location.origin}/login`,
       })
 
@@ -151,6 +164,11 @@ function Login() {
                 ? 'Enter your email and we will send a reset link if an account exists.'
                 : 'Sign in to your BrewHaus account.'}
           </p>
+          {noticeMessage && (
+            <p className="mt-3 text-sm font-medium text-accent" role="status">
+              {noticeMessage}
+            </p>
+          )}
 
           {!isForgotPassword && (
             <div className="mt-6 grid grid-cols-2 rounded-full border border-line bg-bg p-1">

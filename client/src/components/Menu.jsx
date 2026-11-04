@@ -132,6 +132,11 @@ function Menu() {
   }
 
   function orderNow(item) {
+    if (!currentUserId) {
+      window.location.assign('/login?reason=order-required')
+      return
+    }
+
     return handleCheckout(
       [{ id: item.id, quantity: item.quantity }],
       item.id,
@@ -140,7 +145,7 @@ function Menu() {
 
   function addToCart(selectedItem) {
     if (!currentUserId) {
-      setCheckoutError('Sign in to add items to your cart.')
+      window.location.assign('/login?reason=order-required')
       return
     }
 
