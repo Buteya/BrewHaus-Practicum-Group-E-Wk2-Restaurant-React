@@ -193,8 +193,9 @@ links close the detail view before navigating.
   checkout canceled.
 - **Account deletion:** the profile offers a confirmation dialog explaining
   which data is removed and which transaction records are retained. The user
-  can provide their current password, if applicable, to confirm. A recently
-  renewed sign-in may be required.
+  can provide their current password, if applicable, to confirm. If the
+  session is no longer recent, the user can sign in again with the same
+  account—including Google OAuth—and return to the deletion confirmation.
 - **Reservations:** anyone can request a table from the landing page. The
   server accepts future times during the listed opening hours, for parties of
   1–20, and returns a request status. The restaurant still needs to confirm

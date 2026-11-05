@@ -25,15 +25,23 @@ function Login() {
   const requiresOrderSignIn =
     new URLSearchParams(window.location.search).get('reason') ===
     'order-required'
+  const deleteReauthUserId = new URLSearchParams(
+    window.location.search,
+  ).get('reauth-delete')
+  const deleteReauthCallback = deleteReauthUserId
+    ? `${window.location.origin}/profile?confirm-delete=${encodeURIComponent(deleteReauthUserId)}`
+    : null
   const [mode, setMode] = useState('sign-in')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState(getOAuthErrorMessage)
   const noticeMessage =
-    requiresOrderSignIn
-      ? 'Sign in or create an account to add items to your cart or place an order.'
-      : ''
+    deleteReauthUserId
+      ? 'Sign in again with the same BrewHaus account to confirm your account deletion.'
+      : requiresOrderSignIn
+        ? 'Sign in or create an account to add items to your cart or place an order.'
+        : ''
   const accountWasDeleted =
     new URLSearchParams(window.location.search).get('account-deleted') === '1'
   const cartCleanupFailed =
@@ -71,7 +79,8 @@ function Login() {
           : await authClient.signIn.email({
               email,
               password,
-              callbackURL: window.location.origin,
+              callbackURL:
+                deleteReauthCallback || window.location.origin,
             })
 
       if (error) {
@@ -90,6 +99,10 @@ function Login() {
         setMode('sign-in')
         setSuccessMessage('Your account has been created. Please sign in.')
       } else {
+        if (deleteReauthCallback) {
+          window.location.assign(deleteReauthCallback)
+          return
+        }
         if (requiresOrderSignIn) {
           window.location.assign('/#menu')
           return
@@ -115,10 +128,14 @@ function Login() {
     try {
       const { error } = await authClient.signIn.social({
         provider: 'google',
-        callbackURL: requiresOrderSignIn
-          ? `${window.location.origin}/#menu`
-          : window.location.origin,
-        errorCallbackURL: `${window.location.origin}/login`,
+        callbackURL:
+          deleteReauthCallback ||
+          (requiresOrderSignIn
+            ? `${window.location.origin}/#menu`
+            : window.location.origin),
+        errorCallbackURL: deleteReauthUserId
+          ? `${window.location.origin}/login?reauth-delete=${encodeURIComponent(deleteReauthUserId)}`
+          : `${window.location.origin}/login`,
       })
 
       if (error) {

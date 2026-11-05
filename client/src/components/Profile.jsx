@@ -10,6 +10,9 @@ function Profile() {
   const { data: session, isPending: isSessionPending } = authClient.useSession()
   const user = session?.user
   const userId = user?.id
+  const expectedDeleteUserId = new URLSearchParams(
+    window.location.search,
+  ).get('confirm-delete')
   const [orders, setOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -19,6 +22,46 @@ function Profile() {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [isReauthenticating, setIsReauthenticating] = useState(false)
+  const [requiresReauthentication, setRequiresReauthentication] =
+    useState(false)
+
+  useEffect(() => {
+    if (isSessionPending || !expectedDeleteUserId) return
+
+    if (userId === expectedDeleteUserId) {
+      setIsDeleteDialogOpen(true)
+    } else if (userId) {
+      setDeleteError(
+        'You signed in to a different BrewHaus account. Sign in with the account you intended to delete.',
+      )
+    }
+
+    window.history.replaceState(null, '', '/profile')
+  }, [expectedDeleteUserId, isSessionPending, userId])
+
+  async function handleReauthenticate() {
+    setDeleteError('')
+    setIsReauthenticating(true)
+
+    try {
+      const { error } = await authClient.signOut()
+      if (error) {
+        throw new Error(error.message || 'Unable to sign out. Please try again.')
+      }
+
+      window.location.assign(
+        `/login?reauth-delete=${encodeURIComponent(userId)}`,
+      )
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to restart sign-in. Please try again.',
+      )
+      setIsReauthenticating(false)
+    }
+  }
 
   async function handleDeleteAccount(event) {
     event.preventDefault()
@@ -31,9 +74,11 @@ function Profile() {
       )
 
       if (error) {
+        const needsFreshSession = error.code === 'SESSION_EXPIRED'
+        setRequiresReauthentication(needsFreshSession)
         setDeleteError(
-          error.code === 'SESSION_EXPIRED'
-            ? 'For your security, sign out and sign back in, then try deleting your account again.'
+          needsFreshSession
+            ? 'For your security, confirm your identity by signing in again before deleting your account.'
             : error.message || 'Unable to delete your account. Please try again.',
         )
         return
@@ -375,11 +420,17 @@ function Profile() {
                 are retained for restaurant records but will no longer be linked
                 to your account. This cannot be undone.
               </p>
+              {deleteError && !isDeleteDialogOpen && (
+                <p className="mt-4 text-sm font-medium text-accent" role="alert">
+                  {deleteError}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => {
                   setDeletePassword('')
                   setDeleteError('')
+                  setRequiresReauthentication(false)
                   setIsDeleteDialogOpen(true)
                 }}
                 className="mt-5 rounded-full border border-accent px-5 py-2.5 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -454,6 +505,18 @@ function Profile() {
                   className="rounded-full border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-accent disabled:opacity-60"
                 >
                   Keep my account
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReauthenticate}
+                  disabled={isDeletingAccount || isReauthenticating}
+                  className={`rounded-full border border-accent px-5 py-2.5 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white disabled:opacity-60 ${
+                    requiresReauthentication ? '' : 'hidden'
+                  }`}
+                >
+                  {isReauthenticating
+                    ? 'Signing out...'
+                    : 'Sign in again'}
                 </button>
                 <button
                   type="submit"
