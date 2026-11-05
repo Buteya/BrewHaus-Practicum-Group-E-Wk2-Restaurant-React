@@ -40,6 +40,11 @@ The browser title and favicon use BrewHaus branding.
   the cart only after payment is confirmed.
 - Profile and order history, including pending-order actions to recheck payment
   directly with Stripe or cancel an open, unpaid checkout.
+- Account deletion from the profile with a clear, irreversible data-loss
+  warning. Deleting an account removes its profile, sign-in credentials, and
+  reservation requests made with that email. Transaction records are retained
+  for restaurant records but are unlinked from the deleted account and no
+  longer visible in its order history.
 - Reservation requests persisted in PostgreSQL and checked against the
   restaurant's Nairobi-time opening hours. Guests provide their name, email,
   phone, date, time, party size, and optional notes. A request is not a
@@ -186,6 +191,10 @@ links close the detail view before navigating.
 - **Orders:** `/profile` shows the signed-in user's details and order history.
   Pending orders can be checked against Stripe again or have an open unpaid
   checkout canceled.
+- **Account deletion:** the profile offers a confirmation dialog explaining
+  which data is removed and which transaction records are retained. The user
+  can provide their current password, if applicable, to confirm. A recently
+  renewed sign-in may be required.
 - **Reservations:** anyone can request a table from the landing page. The
   server accepts future times during the listed opening hours, for parties of
   1–20, and returns a request status. The restaurant still needs to confirm
@@ -246,8 +255,11 @@ Drizzle defines the following PostgreSQL tables:
 - Commerce: `orders`, `orderitems`
 - Reservations: `reservations`
 
-Use `npm --prefix .\server run db:push` after schema changes. The seed data is
-defined in `server/src/db/menu.data.js` and loaded with
+Use `npm --prefix .\server run db:push` after schema changes during local
+development. Vercel runs an idempotent account-deletion schema update during
+the server build so historical orders can remain after their user account is
+removed. The build requires the server's `DATABASE_URL` to be configured. The
+seed data is defined in `server/src/db/menu.data.js` and loaded with
 `npm --prefix .\server run db:seed`.
 
 ## Stripe testing

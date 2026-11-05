@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { authClient } from '../lib/auth-client'
-import { removePurchasedItemsFromUserCart } from '../lib/cart'
+import {
+  clearUserCart,
+  removePurchasedItemsFromUserCart,
+} from '../lib/cart'
 import { formatPrice } from '../lib/format'
 
 function Profile() {
@@ -12,6 +15,50 @@ function Profile() {
   const [errorMessage, setErrorMessage] = useState('')
   const [activeOrderAction, setActiveOrderAction] = useState(null)
   const [orderFeedback, setOrderFeedback] = useState(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+
+  async function handleDeleteAccount(event) {
+    event.preventDefault()
+    setDeleteError('')
+    setIsDeletingAccount(true)
+
+    try {
+      const { error } = await authClient.deleteUser(
+        deletePassword ? { password: deletePassword } : {},
+      )
+
+      if (error) {
+        setDeleteError(
+          error.code === 'SESSION_EXPIRED'
+            ? 'For your security, sign out and sign back in, then try deleting your account again.'
+            : error.message || 'Unable to delete your account. Please try again.',
+        )
+        return
+      }
+
+      let cartCleanupFailed = false
+      try {
+        clearUserCart(userId)
+      } catch {
+        cartCleanupFailed = true
+      }
+
+      window.location.assign(
+        `/login?account-deleted=1${cartCleanupFailed ? '&cart-cleanup=failed' : ''}`,
+      )
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to delete your account. Please try again.',
+      )
+    } finally {
+      setIsDeletingAccount(false)
+    }
+  }
 
   useEffect(() => {
     if (isSessionPending) return
@@ -307,9 +354,119 @@ function Profile() {
                 </ul>
               )}
             </section>
+
+            <section
+              className="mt-10 rounded-2xl border border-accent/30 bg-bg p-5 sm:p-6"
+              aria-labelledby="delete-account-heading"
+            >
+              <p className="text-sm font-semibold tracking-[0.12em] text-accent uppercase">
+                Account settings
+              </p>
+              <h2
+                id="delete-account-heading"
+                className="mt-2 text-xl font-bold text-ink"
+              >
+                Delete your account
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                Deleting your account permanently removes your BrewHaus profile,
+                sign-in details, and reservation requests made with this email.
+                You will lose access to your order history. Transaction records
+                are retained for restaurant records but will no longer be linked
+                to your account. This cannot be undone.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeletePassword('')
+                  setDeleteError('')
+                  setIsDeleteDialogOpen(true)
+                }}
+                className="mt-5 rounded-full border border-accent px-5 py-2.5 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Delete account
+              </button>
+            </section>
           </>
         )}
       </section>
+
+      {isDeleteDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 px-4 py-8"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isDeletingAccount) {
+              setIsDeleteDialogOpen(false)
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-delete-heading"
+            className="w-full max-w-lg rounded-3xl border border-line bg-white p-6 shadow-[0_12px_36px_rgba(23,54,47,0.2)] sm:p-8"
+          >
+            <p className="text-sm font-semibold tracking-[0.12em] text-accent uppercase">
+              Permanent action
+            </p>
+            <h2
+              id="confirm-delete-heading"
+              className="mt-2 text-2xl font-bold text-ink"
+            >
+              Are you sure you want to leave BrewHaus?
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+              Your profile, sign-in details, and reservation requests made with
+              this email will be deleted. Your past transaction records will be
+              kept for restaurant records, but you will no longer be able to
+              view them. You cannot undo this action.
+            </p>
+            <form className="mt-6" onSubmit={handleDeleteAccount}>
+              <label
+                htmlFor="delete-account-password"
+                className="block text-sm font-semibold text-ink"
+              >
+                Current password
+                <span className="font-normal text-ink-soft">
+                  {' '}
+                  (if you use email and password)
+                </span>
+              </label>
+              <input
+                id="delete-account-password"
+                type="password"
+                autoComplete="current-password"
+                value={deletePassword}
+                onChange={(event) => setDeletePassword(event.target.value)}
+                disabled={isDeletingAccount}
+                className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
+              />
+              {deleteError && (
+                <p className="mt-3 text-sm font-medium text-accent" role="alert">
+                  {deleteError}
+                </p>
+              )}
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                  disabled={isDeletingAccount}
+                  className="rounded-full border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-accent disabled:opacity-60"
+                >
+                  Keep my account
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDeletingAccount}
+                  className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isDeletingAccount ? 'Deleting account...' : 'Yes, delete it'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   )
 }

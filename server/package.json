@@ -9,6 +9,7 @@
     "scripts": {
         "dev": "node --watch src/dev.js",
         "start": "node src/dev.js",
+        "vercel-build": "node src/db/ensure-account-deletion-schema.js",
         "db:generate": "drizzle-kit generate --config=src/db/drizzle.config.js",
         "db:push": "drizzle-kit push --config=src/db/drizzle.config.js",
         "db:studio": "drizzle-kit studio --config=src/db/drizzle.config.js",

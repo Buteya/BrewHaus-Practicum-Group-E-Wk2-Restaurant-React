@@ -34,7 +34,17 @@ function Login() {
     requiresOrderSignIn
       ? 'Sign in or create an account to add items to your cart or place an order.'
       : ''
-  const [successMessage, setSuccessMessage] = useState('')
+  const accountWasDeleted =
+    new URLSearchParams(window.location.search).get('account-deleted') === '1'
+  const cartCleanupFailed =
+    new URLSearchParams(window.location.search).get('cart-cleanup') === 'failed'
+  const [successMessage, setSuccessMessage] = useState(
+    accountWasDeleted
+      ? cartCleanupFailed
+        ? "Your account has been deleted, but this browser could not clear its saved cart. Please clear this browser's local storage."
+        : 'Your BrewHaus account has been deleted. You can no longer sign in with it.'
+      : '',
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSigningUp = mode === 'sign-up'
   const isForgotPassword = mode === 'forgot-password'

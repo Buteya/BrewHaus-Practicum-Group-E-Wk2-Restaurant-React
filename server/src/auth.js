@@ -1,7 +1,14 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { sql } from 'drizzle-orm'
 import { db } from './db/index.js'
-import { account, session, user, verification } from './db/schema.js'
+import {
+  account,
+  reservations,
+  session,
+  user,
+  verification,
+} from './db/schema.js'
 
 const trustedOrigins = [
   process.env.CLIENT_URL,
@@ -65,6 +72,18 @@ export const auth = betterAuth({
         text: `Use this link to reset your BrewHaus password: ${url}`,
         html: `<p>We received a request to reset your BrewHaus password.</p><p><a href="${safeUrl}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p>`,
       })
+    },
+  },
+  user: {
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (accountToDelete) => {
+        await db
+          .delete(reservations)
+          .where(
+            sql`lower(${reservations.email}) = lower(${accountToDelete.email})`,
+          )
+      },
     },
   },
   account: {

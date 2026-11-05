@@ -146,9 +146,7 @@ export const orders = pgTable(
   'orders',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('userId')
-      .notNull()
-      .references(() => user.id, { onDelete: 'restrict' }),
+    userId: text('userId').references(() => user.id, { onDelete: 'set null' }),
     stripeCheckoutSessionId: text('stripeCheckoutSessionId').notNull(),
     status: text('status').notNull().default('pending'),
     total: numeric('total', { precision: 10, scale: 2 }).notNull(),
