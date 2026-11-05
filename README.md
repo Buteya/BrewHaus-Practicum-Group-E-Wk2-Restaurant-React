@@ -258,9 +258,10 @@ Drizzle defines the following PostgreSQL tables:
 
 Use `npm --prefix .\server run db:push` after schema changes during local
 development. Vercel runs an idempotent account-deletion schema update during
-the server build so historical orders can remain after their user account is
-removed. The build requires the server's `DATABASE_URL` to be configured. The
-seed data is defined in `server/src/db/menu.data.js` and loaded with
+the server build and again immediately before account deletion, so historical
+orders can remain after their user account is removed. Both operations require
+the server's `DATABASE_URL` to be configured. The seed data is defined in
+`server/src/db/menu.data.js` and loaded with
 `npm --prefix .\server run db:seed`.
 
 ## Stripe testing

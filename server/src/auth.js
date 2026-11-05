@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { sql } from 'drizzle-orm'
 import { db } from './db/index.js'
+import { ensureAccountDeletionSchema } from './db/ensure-account-deletion-schema.js'
 import {
   account,
   reservations,
@@ -78,6 +79,7 @@ export const auth = betterAuth({
     deleteUser: {
       enabled: true,
       beforeDelete: async (accountToDelete) => {
+        await ensureAccountDeletionSchema()
         await db
           .delete(reservations)
           .where(

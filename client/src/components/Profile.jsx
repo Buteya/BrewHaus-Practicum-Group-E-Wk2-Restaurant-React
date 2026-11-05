@@ -79,7 +79,8 @@ function Profile() {
         setDeleteError(
           needsFreshSession
             ? 'For your security, confirm your identity by signing in again before deleting your account.'
-            : error.message || 'Unable to delete your account. Please try again.',
+            : error.message ||
+                `Unable to delete your account. Please try again.${error.code ? ` (${error.code})` : ''}`,
         )
         return
       }
