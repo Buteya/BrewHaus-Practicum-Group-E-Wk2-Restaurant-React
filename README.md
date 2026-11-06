@@ -49,8 +49,10 @@ The browser title and favicon use BrewHaus branding.
   restaurant's Nairobi-time opening hours. Guests provide their name, email,
   phone, date, time, party size, and optional notes. A request is not a
   confirmed reservation; the restaurant must confirm availability.
-- Responsive styling with Tailwind CSS, accessible form feedback, and a
-  BrewHaus coffee-cup favicon.
+- Responsive styling with Tailwind CSS. On small screens, the navbar collapses
+  into a BrewHaus-themed toggle when its expanded height exceeds one third of
+  the viewport; the menu closes after navigation or when Escape is pressed.
+  Accessible form feedback and a BrewHaus coffee-cup favicon are also included.
 
 ## Technology
 

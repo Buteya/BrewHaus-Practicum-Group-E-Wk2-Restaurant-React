@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { authClient } from '../lib/auth-client'
 import { readUserCart, userCartUpdatedEvent } from '../lib/cart'
 
 function Header({ onSectionNavigate }) {
   const { data: session, isPending } = authClient.useSession()
+  const navRef = useRef(null)
+  const brandRef = useRef(null)
+  const linksRef = useRef(null)
+  const [isCompact, setIsCompact] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState('')
   const [cartCountState, setCartCountState] = useState({
@@ -14,6 +19,66 @@ function Header({ onSectionNavigate }) {
   const userId = session?.user?.id ?? null
   const sectionHref = (section) =>
     window.location.pathname === '/' ? `#${section}` : `/#${section}`
+
+  useLayoutEffect(() => {
+    function updateNavbarLayout() {
+      const nav = navRef.current
+      const brand = brandRef.current
+      const links = linksRef.current
+      if (!nav || !brand || !links) return
+
+      const navStyle = window.getComputedStyle(nav)
+      const expandedHeight =
+        brand.getBoundingClientRect().height +
+        links.getBoundingClientRect().height +
+        (Number.parseFloat(navStyle.rowGap) || 0) +
+        (Number.parseFloat(navStyle.paddingTop) || 0) +
+        (Number.parseFloat(navStyle.paddingBottom) || 0)
+      const shouldCollapse =
+        window.matchMedia('(max-width: 767px)').matches &&
+        expandedHeight > window.innerHeight / 3
+
+      setIsCompact((current) =>
+        current === shouldCollapse ? current : shouldCollapse,
+      )
+      if (!shouldCollapse) setIsMenuOpen(false)
+    }
+
+    updateNavbarLayout()
+    window.addEventListener('resize', updateNavbarLayout)
+    const observer = new ResizeObserver(updateNavbarLayout)
+    if (navRef.current) observer.observe(navRef.current)
+    if (brandRef.current) observer.observe(brandRef.current)
+    if (linksRef.current) observer.observe(linksRef.current)
+
+    return () => {
+      window.removeEventListener('resize', updateNavbarLayout)
+      observer.disconnect()
+    }
+  }, [
+    cartCountState.count,
+    cartCountState.userId,
+    isPending,
+    session?.user?.id,
+  ])
+
+  useEffect(() => {
+    function closeMenuOnEscape(event) {
+      if (event.key === 'Escape') setIsMenuOpen(false)
+    }
+
+    window.addEventListener('keydown', closeMenuOnEscape)
+    return () => window.removeEventListener('keydown', closeMenuOnEscape)
+  }, [])
+
+  function handleSectionLinkClick(event) {
+    setIsMenuOpen(false)
+    onSectionNavigate?.(event)
+  }
+
+  function handleMenuLinkClick(event) {
+    if (event.target.closest('a')) setIsMenuOpen(false)
+  }
 
   useEffect(() => {
     if (isPending) return
@@ -57,6 +122,7 @@ function Header({ onSectionNavigate }) {
   }, [isPending, userId])
 
   async function handleSignOut() {
+    setIsMenuOpen(false)
     setSignOutError('')
     setIsSigningOut(true)
 
@@ -76,18 +142,81 @@ function Header({ onSectionNavigate }) {
 
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-bg">
-      <nav className="mx-auto flex w-full max-w-[1100px] flex-col items-center gap-3 px-4 py-3 sm:px-6 md:flex-row md:justify-between">
+      <nav
+        ref={navRef}
+        className={`relative mx-auto flex w-full max-w-[1100px] items-center gap-3 px-4 py-3 sm:px-6 ${
+          isCompact
+            ? 'flex-row justify-between'
+            : 'flex-col md:flex-row md:justify-between'
+        }`}
+      >
+        {isCompact && (
+          <button
+            type="button"
+            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMenuOpen}
+            aria-controls="primary-navigation"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-panel-sage text-ink transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {isMenuOpen ? (
+              <svg
+                aria-hidden="true"
+                className="size-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 6l12 12M18 6 6 18"
+                />
+              </svg>
+            ) : (
+              <svg
+                aria-hidden="true"
+                className="size-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 7h16M4 12h16M4 17h16"
+                />
+              </svg>
+            )}
+          </button>
+        )}
         <a
+          ref={brandRef}
           href={sectionHref('hero')}
-          onClick={onSectionNavigate}
+          onClick={handleSectionLinkClick}
           className="shrink-0 text-lg font-bold sm:text-xl"
         >
           Brew<span className="text-accent">Haus</span> Restaurant
         </a>
-        <ul className="flex w-full flex-col items-center gap-2 md:w-auto md:flex-row md:gap-x-5">
-          <li><a onClick={onSectionNavigate} className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href={sectionHref('hero')}>Home</a></li>
-          <li><a onClick={onSectionNavigate} className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href={sectionHref('about')}>About</a></li>
-          <li><a onClick={onSectionNavigate} className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href={sectionHref('menu')}>Menu</a></li>
+        <ul
+          ref={linksRef}
+          id="primary-navigation"
+          onClick={handleMenuLinkClick}
+          className={`flex w-full flex-col items-center gap-2 md:w-auto md:flex-row md:gap-x-5 ${
+            isCompact
+              ? `absolute left-0 top-full z-30 rounded-b-2xl border-b border-line bg-bg px-4 pb-4 shadow-[0_12px_24px_rgba(23,54,47,0.12)] sm:px-6 ${
+                  isMenuOpen
+                    ? 'visible'
+                    : 'invisible pointer-events-none'
+                }`
+              : 'md:static'
+          }`}
+        >
+          <li><a onClick={handleSectionLinkClick} className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href={sectionHref('hero')}>Home</a></li>
+          <li><a onClick={handleSectionLinkClick} className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href={sectionHref('about')}>About</a></li>
+          <li><a onClick={handleSectionLinkClick} className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent sm:text-[0.95rem]" href={sectionHref('menu')}>Menu</a></li>
           {!isPending &&
             userId &&
             cartCountState.userId === userId &&
