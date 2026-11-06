@@ -17,6 +17,14 @@ function Header({ onSectionNavigate }) {
   })
   const [cartError, setCartError] = useState('')
   const userId = session?.user?.id ?? null
+  const showCartBadge = Boolean(
+    isCompact &&
+      !isMenuOpen &&
+      !isPending &&
+      userId &&
+      cartCountState.userId === userId &&
+      cartCountState.count > 0,
+  )
   const sectionHref = (section) =>
     window.location.pathname === '/' ? `#${section}` : `/#${section}`
 
@@ -153,11 +161,19 @@ function Header({ onSectionNavigate }) {
         {isCompact && (
           <button
             type="button"
-            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-label={
+              isMenuOpen
+                ? 'Close navigation menu'
+                : showCartBadge
+                  ? `Open navigation menu, ${cartCountState.count} ${
+                      cartCountState.count === 1 ? 'item' : 'items'
+                    } in cart`
+                  : 'Open navigation menu'
+            }
             aria-expanded={isMenuOpen}
             aria-controls="primary-navigation"
             onClick={() => setIsMenuOpen((open) => !open)}
-            className="inline-flex size-11 shrink-0 items-center justify-center text-ink transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="relative inline-flex size-11 shrink-0 items-center justify-center text-ink transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {isMenuOpen ? (
               <svg
@@ -189,6 +205,14 @@ function Header({ onSectionNavigate }) {
                   d="M4 7h16M4 12h16M4 17h16"
                 />
               </svg>
+            )}
+            {showCartBadge && (
+              <span
+                aria-hidden="true"
+                className="absolute -right-0.5 -top-0.5 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[0.6rem] font-bold leading-none text-white"
+              >
+                {cartCountState.count > 99 ? '99+' : cartCountState.count}
+              </span>
             )}
           </button>
         )}
