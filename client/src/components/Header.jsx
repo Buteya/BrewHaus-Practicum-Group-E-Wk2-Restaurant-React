@@ -157,7 +157,7 @@ function Header({ onSectionNavigate }) {
             aria-expanded={isMenuOpen}
             aria-controls="primary-navigation"
             onClick={() => setIsMenuOpen((open) => !open)}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-panel-sage text-ink transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="inline-flex size-11 shrink-0 items-center justify-center text-ink transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {isMenuOpen ? (
               <svg
@@ -196,7 +196,9 @@ function Header({ onSectionNavigate }) {
           ref={brandRef}
           href={sectionHref('hero')}
           onClick={handleSectionLinkClick}
-          className="shrink-0 text-lg font-bold sm:text-xl"
+          className={`shrink-0 text-lg font-bold sm:text-xl ${
+            isCompact ? 'absolute left-1/2 -translate-x-1/2' : ''
+          }`}
         >
           Brew<span className="text-accent">Haus</span> Restaurant
         </a>
